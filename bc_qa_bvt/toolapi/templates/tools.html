@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang=“en”>
+    <head>
+        <meta charset="UTF-8">
+        <title>常用工具</title>
+        <script>
+            window.onload = function(){
+                var obj_select = document.getElementById("multipleselect_encrypt_type");
+                var obj_div = document.getElementById("ende_select_div");
+                var obj_message = document.getElementById("show_message");
+                obj_select.onchange = function(){
+                    if (this.value=="MD5"){
+                        obj_div.style.display = "none";
+                        obj_message.innerHTML = "只支持获取MD5，body_data必填";
+                    }else if (this.value=="FileMD5"){
+                        obj_div.style.display = "none";
+                        obj_message.innerHTML = "只支持获取文件MD5，请上传文件";
+                    }else if (this.value=="ApkInfo"){
+                        obj_div.style.display = "none";
+                        obj_message.innerHTML = "只支持APK文件信息，请上传APK文件";
+                    }else{
+                        obj_div.style.display = "block";
+                        obj_message.innerHTML = "";
+                        if (this.value=="base64"){
+                            obj_message.innerHTML = "body_data必填";
+                        }else if (this.value=="-----Select-----"){
+                            obj_message.innerHTML = "无";
+                        }
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <form enctype='multipart/form-data' action="/tools" method="post">
+            <div>
+                <p>upload_file: <input type="file" name="upload_file" id="upload_file" value="" style="width:400px; background-color:yellow"/>
+                （上传文件，body_data可以不填）</p>
+            </div>
+            <font color="red"><lable id="show_message"></lable></font>
+            <div>
+                <div style="float:left;width=45%">
+                    {% if body_data%}
+                    body_data: </br><textarea name="body_data" rows="28" cols="65">{{body_data}}</textarea>
+                    {% else %}
+                    body_data: </br><textarea name="body_data" rows="28" cols="65"></textarea>
+                    {% endif %}
+                </div>
+                
+                <div style="float:left; margin-left:20px; margin-right:20px">
+                    <p></p>
+                    </br>
+                    <center><select size="5" multiple="multiple" id="multipleselect_encrypt_type" name="multipleselect_encrypt_type[]">
+                        <option selected>-----Select-----</option>
+                        <option>base64</option>
+                        <option>MD5</option>
+                        <option>FileMD5</option>
+                        <option>ApkInfo</option>
+                    </select></center>
+                    <div id="ende_select_div">
+                        </br>
+                        <center><select size="3" multiple="multiple" id="multipleselect_ende_select" name="multipleselect_ende_select[]">
+                            <option selected>-----Select-----</option>
+                            <option>decode</option>
+                            <option>encode</option>
+                        </select></center>
+                    </div>
+                    <center></br>----------></center>
+                    </br>
+                    <center><button type="submit">获取</button></center>
+                </div>
+                
+                <div style="float:left; width=45%">
+                    {% if resp_body%}
+                    resp_body: </br><textarea name="resp_body" rows="28" cols="65">{{resp_body}}</textarea>
+                    {% else %}
+                    resp_body: </br><textarea name="resp_body" rows="28" cols="65"></textarea>
+                    {% endif %}
+                </div>
+            </div>
+            <div style="clear:both"></div>
+            <div>
+                <p>download_body: 
+                {% if task_time_filename%}
+                <a name="downloadbtn" class="btn btn-success pull-right" href="/download/?filename={{task_time_filename}}" target="_blank">结果文件下载</a>
+                {% else %}
+                无下载文件</p>
+                {% endif %}
+            </div>
+        </form>
+        </br>
+    </body>
+</html>
