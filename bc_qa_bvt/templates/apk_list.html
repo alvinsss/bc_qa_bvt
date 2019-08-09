@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block base %}
+{% load static %}
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">BVT测试</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+{#                    <li><a href="#">{{request.user}}</a></li>#}
+{#                    <li><a href="#">设置</a></li>#}
+                    <li><a href="/logout/">退出</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+
+            <div >
+                <h4 class="sub-header">apk管理
+                    <button type="button" class="btn btn-sm btn-primary" style="float: right;"
+                            onclick="location.href='/apk/add_apk/'">创建
+                    </button>
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>task_id</th>
+                            <th>名称</th>
+                            <th>状态</th>
+                            <th>测试类型</th>
+                            <th>应用名称</th>
+                            <th>包名</th>
+                            <th>文件大小kb</th>
+                            <th>md5</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for apkfile in apkfiles %}
+                            <tr>
+                                <td>{{ apkfile.id }}</td>
+                                <td>{{ apkfile.name_des }}</td>
+                                {% if apkfile.sum_status == 0 %}
+                                    <td>未执行</td>
+                                {% endif %}
+                                {% if apkfile.sum_status == 1 %}
+                                    <td>执行中</td>
+                                {% endif %}
+                                {% if apkfile.sum_status == 2 %}
+                                    <td>已完成</td>
+                                {% endif %}
+
+                                <td>{{ apkfile.apk_testtype }}</td>
+                                <td>{{ apkfile.applicationname }}</td>
+                                <td>{{ apkfile.packagename }}</td>
+                                <td>{{ apkfile.apksize }}</td>
+                                <td>{{ apkfile.md5 }}</td>
+                                <td>{{ apkfile.create_time | date:"Y-m-d H:i:s" }}</td>
+                                <td>
+                                   <a href="/apk/result/{{apkfile.id}}/" style="margin-right: 8px;">
+									<span class="glyphicon glyphicon-th-large"></span>
+								   </a>
+                                   <a href="#" onclick="RunAPKtest('{{apkfile.id}}')" style="margin-right: 8px;">
+									<span class="glyphicon glyphicon-play"></span>
+								  </a>
+                                   <a href="#" onclick="window.open('/apk/download_apkfile/{{apkfile.id}}')" style="margin-right: 8px;">
+									<span class="glyphicon glyphicon-download"></span>
+								   </a>
+                                {% if apkfile.sum_result == 1 or apkfile.sum_result == 2  or apkfile.sum_status == 2 %}
+                                  <a href="#" onclick="RunAPKmail('{{apkfile.id}}')" style="margin-right: 8px;">
+									<span class="glyphicon glyphicon-envelope"></span>
+								  </a>
+                                {% endif %}
+
+
+                                </td>
+
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页器 -->
+                <div id="pagination_pages">
+                    <nav aria-label="Page navigation">
+                        <div class="nav-page">
+                            <ul class="pagination">
+                            <li>
+                                {% if apkfiles.has_previous %}
+                                    <a href="?page={{ apkfiles.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                {% endif %}
+                            </li>
+
+                            <li><a href="#">{{ apkfiles.number }}</a></li>
+
+                            {% if apkfiles.has_next %}
+                                <li>
+                                    <a href="?page={{ apkfiles.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            <li><a href="#">共：{{ apkfiles.paginator.num_pages }} 页</a></li>
+                        </ul>
+
+                        </div>
+                    </nav>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<script src="{%static "js/myAPK.js"%}"> </script>
+{% endblock %}
+

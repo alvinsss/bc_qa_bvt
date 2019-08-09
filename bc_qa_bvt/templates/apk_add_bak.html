@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block base %}
+
+
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="http://172.31.1.12:8008/apk/">BVT测试</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+{#                <li><a href="#">{{ request.user }}</a></li>#}
+{#                <li><a href="#">设置</a></li>#}
+                <li><a href="/logout/">退出</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div >
+            <h4 class="sub-header">上传apk任务页面</h4>
+             <form>
+                    <div class="input-group" style="top:30px">
+                        <span class="input-group-addon">名称描述</span>
+                        <input  style="width: 31%" id="name_des" name="name_des" type="text" class="form-control">
+                    </div>
+
+                    <div style="margin-top:45px " >
+                         <input type="file" id="uploadfile"  name="uploadfile" />
+                    </div>
+
+                    <div class="checkbox" style="margin-top:20px;" >
+                        <label>
+                            <input type="checkbox" id="chElt" onclick="CheckOrCancelAll();"/>
+                            <span style="color:grey" id="mySpan" >全选</span>
+                            <br/>
+                        </label>
+                    </div>
+
+                    <div class="checkbox">
+                        <label>
+                            <div class="contain">
+                              <p >测试类型:</p>
+                            </div>
+                        </label>
+                        <label>
+                          <input type="checkbox" name="apk_testtype" value="Apkinfo"/>Apkinfo
+                        </label>
+                        <label>
+                          <input type="checkbox" name="apk_testtype" value="VirusScanning"/>VirusScanning
+                        </label>
+                        <label>
+                          <input type="checkbox" name="apk_testtype" value="Monkey"/>Monkey
+                        </label>
+                     </div>
+
+                    <div class="form-group">
+                    </div>
+                    <input  type="button" class="btn btn-success" id="uploadapkfile"  value="上传" onclick="btnuploadapkfile();"/>
+                {% csrf_token %}
+        </form>
+
+
+    </div>
+
+    <style>
+        .contain p{
+            font-size:14px;
+            color: #555;
+        }
+    </style>
+
+<script src="{%static "js/jquery.min.js"%}"></script>
+<link rel="stylesheet" type="text/css" href="{% static "css/select2.min.css" %}">
+<script src="{%static "js/select2.min.js"%}"></script>
+<script src="{%static "js/myAPK.js"%}"></script>
+
+<script type="text/javascript">
+    //页面加载的时候,所有的复选框都是选中的状态
+    function CheckOrCancelAll(){
+        //1.获取checkbo的元素对象
+        var chElt=document.getElementById("chElt");
+        //2.获取选中状态
+        var checkedElt=chElt.checked;
+        //3.若checked=true,将所有的复选框选中,checked=false,将所有的复选框取消
+        var allCheck=document.getElementsByName("apk_testtype");
+        //4.循环遍历取出每一个复选框中的元素
+        if(!(checkedElt)){
+            chElt.checked = true;
+            for(var i=0;i<allCheck.length;i++){
+            //设置复选框的选中状态
+            allCheck[i].checked=true;
+        }
+        }else{
+            for(var i=0;i<allCheck.length;i++){
+            allCheck[i].checked=false;
+              }
+            }
+
+    };
+
+    CheckOrCancelAll();
+
+     function btnuploadapkfile() {
+            var testtypedata = [];
+            var apk_testtype_el=document.getElementsByName("apk_testtype");
+            for (var i =0 ;i<apk_testtype_el.length;i++){
+                if (apk_testtype_el[i].checked){
+                    testtypedata.push(apk_testtype_el[i].value)
+                }
+            }
+            console.log("testtypedata ",testtypedata)
+            if (testtypedata.length == 0 || (document.getElementById("name_des").value == "") ) {
+                alert("测试类型或名称描述必填项，请选择或输入！")
+                return;
+            }
+
+            filenames = document.getElementById("uploadfile").value;
+            if ( (filenames.indexOf('(') !== -1) || (filenames.indexOf(')') !== -1) || (filenames.indexOf('()') !== -1) ){
+                alert("上传文件名不能包含'()'字符，请选择上传的文件！")
+                return;
+            }
+
+            var form_Data = new FormData()
+            form_Data.append('name_des',$("#name_des").val());
+            form_Data.append('apk_testtype',testtypedata);
+            form_Data.append('file_obj',$("#uploadfile")[0].files[0]);
+
+            document.getElementById('uploadapkfile').setAttribute("disabled",true);
+
+            $.ajax({
+                url:'/apk/save_uploadapkfile/',
+                type:'post',
+                contentType:false,
+                processData:false,
+                data:form_Data,
+                success:function(data){
+                    console.log(data)
+                    {#window.alert(data.message);#}
+                    location.replace(document.referrer);
+                }
+            })
+    }
+
+</script>
+
+{% endblock %}

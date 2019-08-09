@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block base %}
+{% load static %}
+
+<style type="text/css">
+.dialog-content{
+    word-wrap:break-word;
+    word-break:break-all;
+}
+</style>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="http://172.31.1.12:8008/apk/">BVT测试</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+{#                    <li><a href="#">{{request.user}}</a></li>#}
+{#                    <li><a href="#">设置</a></li>#}
+                    <li><a href="/logout/">退出</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            </div>
+            <div >
+                <h4 class="sub-header">apk测试结果
+{#                    <button type="button" class="btn btn-sm btn-primary" style="float: right;"#}
+{#                            onclick="location.href='/apk/add_apk/'">创建#}
+{#                    </button>#}
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+{#                            <th>task_id</th>#}
+                            <th>名称</th>
+                            <th>状态</th>
+                            <th>结果</th>
+                            <th>执行测试类型</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for result in results %}
+                            <tr>
+{#                                <td>{{ result.task_id }}</td>#}
+                                <td>{{ result.name_des }}</td>
+                                {% if result.run_status == 0 %}
+                                    <td>未执行</td>
+                                {% endif %}
+                                {% if result.run_status == 1 %}
+                                    <td>执行中</td>
+                                {% endif %}
+                                {% if result.run_status == 2 %}
+                                    <td>已完成</td>
+                                {% endif %}
+                                {% if result.run_result == 0 %}
+                                    <td>未知</td>
+                                {% endif %}
+                                {% if result.run_result == 1 %}
+                                    <td>成功</td>
+                                {% endif %}
+                                {% if result.run_result == 2 %}
+                                    <td bgcolor="red" >失败</td>
+                                {% endif %}
+                                <td>{{ result.apk_testtype }}</td>
+                                <td>{{ result.create_time | date:"Y-m-d H:i:s" }}</td>
+                                <td>
+
+                                    {% if result.run_result == 1 or result.run_result == 2 %}
+                                    <div style="margin-right: 8px;">
+									<button class="btn btn-primary btn-sm"
+                                            data-toggle="modal"
+                                            data-target="#myModal"
+                                            onclick="detail_result('{{ result.id }}')">详情
+                                    </button>
+								    </div>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页器 -->
+                <div >
+                    <nav aria-label="Page navigation">
+                        <div class="nav-page">
+                        <ul class="pagination">
+                            <li>
+                                {% if results.has_previous %}
+                                    <a href="?page={{ results.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                {% endif %}
+                            </li>
+
+                            <li><a href="#">{{ results.number }}</a></li>
+
+                            {% if results.has_next %}
+                                <li>
+                                    <a href="?page={{ results.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            <li><a href="#">共：{{ results.paginator.num_pages }} 页</a></li>
+
+                        </ul>
+                         </div>
+                    </nav>
+                </div>
+
+            </div>
+        </div>
+            <!-- 查看日志的模态框（Modal） -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                            &times;
+                        </button>
+                        <h4 class="modal-title" id="myModalLabel">
+                            结果详细
+                        </h4>
+                    </div>
+                    <div class="dialog-content">
+                       <div class="modal-body" id="log">
+                       </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<script src="{%static "js/myAPK.js"%}"> </script>
+<script type="text/javascript">
+
+        function detail_result(id) {
+        console.log("查看详情日志！", id);
+
+        $.post("/apk/get_detail_result/", {
+				result_id: id,
+			},
+			function (resp) {
+				if(resp.status == 10200){
+					console.log(resp.data);
+					document.querySelector("#log").innerText = resp.data;
+				}
+			});
+    }
+</script>
+{% endblock %}

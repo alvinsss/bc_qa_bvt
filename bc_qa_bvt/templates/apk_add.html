@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block base %}
+
+
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="http://172.31.1.12:8008/apk/">BVT测试</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+{#                <li><a href="#">{{ request.user }}</a></li>#}
+{#                <li><a href="#">设置</a></li>#}
+                <li><a href="/logout/">退出</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div >
+            <h4 class="sub-header">上传apk任务页面</h4>
+                <form action="/upload_ajax/" enctype="multipart/form-data" method="POST">
+                    <div class="input-group" style="top:30px">
+                        <span class="input-group-addon">名称描述</span>
+                        <input  style="width: 31%" id="name_des" name="name_des" type="text" class="form-control">
+                    </div>
+
+                    <div style="margin-top:45px " >
+                         <input type="file" id="uploadfile"  name="uploadfile" />
+                    </div>
+
+                    <div class="checkbox" style="margin-top:20px;" >
+                        <label>
+                            <input type="checkbox" id="chElt" onclick="CheckOrCancelAll();"/>
+                            <span style="color:grey" id="mySpan" >全选</span>
+                            <br/>
+                        </label>
+                    </div>
+
+                    <div class="checkbox">
+                        <label>
+                            <div class="contain">
+                              <p >测试类型:</p>
+                            </div>
+                        </label>
+                        <label>
+                          <input type="checkbox" name="apk_testtype" value="Apkinfo"/>Apkinfo
+                        </label>
+                        <label>
+                          <input type="checkbox" name="apk_testtype" value="VirusScanning"/>VirusScanning
+                        </label>
+                        <label>
+                          <input type="checkbox" name="apk_testtype" value="Monkey"/>Monkey
+                        </label>
+                     </div>
+
+                    <div class="form-group">
+                    </div>
+                    <input  type="button" class="btn btn-success" id="uploadapkfile"  value="上传"/>
+                {% csrf_token %}
+        </form>
+
+<div class="progress" style="width: 500px">
+    <div id="progress-bar" class="progress-bar progress-bar-success progress-bar-striped" role="progressbar"
+         aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+        <span class="sr-only">40% Complete (success)</span>
+    </div>
+</div>
+
+<style>
+        .contain p{
+            font-size:14px;
+            color: #555;
+        }
+</style>
+
+<script src="{%static "js/jquery.min.js"%}"></script>
+<link rel="stylesheet" type="text/css" href="{% static "css/select2.min.css" %}">
+<link rel="stylesheet" type="text/css" href="{% static "css/bootstrap-theme.min.css" %}">
+<link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}">
+<script src="{%static "js/bootstrap.min.js"%}"></script>
+<script src="{%static "js/select2.min.js"%}"></script>
+<script src="{%static "js/myAPK.js"%}"></script>
+<script>
+        //页面加载的时候,所有的复选框都是选中的状态
+    function CheckOrCancelAll(){
+        //1.获取checkbo的元素对象
+        var chElt=document.getElementById("chElt");
+        //2.获取选中状态
+        var checkedElt=chElt.checked;
+        //3.若checked=true,将所有的复选框选中,checked=false,将所有的复选框取消
+        var allCheck=document.getElementsByName("apk_testtype");
+        //4.循环遍历取出每一个复选框中的元素
+        if(!(checkedElt)){
+            chElt.checked = true;
+            for(var i=0;i<allCheck.length;i++){
+            //设置复选框的选中状态
+            allCheck[i].checked=true;
+        }
+        }else{
+            for(var i=0;i<allCheck.length;i++){
+            allCheck[i].checked=false;
+              }
+            }
+
+    };
+
+    CheckOrCancelAll();
+
+    $(function () {
+        $("#uploadapkfile").on('click', function () {
+            UploadFile();
+        });
+
+        $("#uploadfile").change(function () {
+            $("#progress-bar").css("width", 0);
+        });
+
+        // ajax + jQuery上传
+        function UploadFile() {
+            var xhrOnProgress = function (fun) {
+                xhrOnProgress.onprogress = fun; //绑定监听
+                //使用闭包实现监听绑
+                return function () {
+                    //通过$.ajaxSettings.xhr();获得XMLHttpRequest对象
+                    var xhr = $.ajaxSettings.xhr();
+                    //判断监听函数是否为函数
+                    if (typeof xhrOnProgress.onprogress !== 'function')
+                        return xhr;
+                    //如果有监听函数并且xhr对象支持绑定时就把监听函数绑定上去
+                    if (xhrOnProgress.onprogress && xhr.upload) {
+                        xhr.upload.onprogress = xhrOnProgress.onprogress;
+                    }
+                    return xhr;
+                }
+            }
+            var testtypedata = [];
+            var apk_testtype_el=document.getElementsByName("apk_testtype");
+            for (var i =0 ;i<apk_testtype_el.length;i++){
+                if (apk_testtype_el[i].checked){
+                    testtypedata.push(apk_testtype_el[i].value)
+                }
+            }
+            console.log("testtypedata ",testtypedata)
+            if (testtypedata.length == 0 || (document.getElementById("name_des").value == "") ) {
+                alert("测试类型或名称描述必填项，请选择或输入！")
+                return;
+            }
+
+            filenames = document.getElementById("uploadfile").value;
+            if ( (filenames.length == 0) || (filenames.indexOf('(') !== -1) || (filenames.indexOf(')') !== -1) || (filenames.indexOf('()') !== -1) ){
+                alert("上传文件名不能包含'()'字符或上传文件不能为空，请选择上传的文件！")
+                return;
+            }
+
+            var form_Data = new FormData()
+            form_Data.append('name_des',$("#name_des").val());
+            form_Data.append('apk_testtype',testtypedata);
+            form_Data.append('file_obj',$("#uploadfile")[0].files[0]);
+            form_Data.append("csrfmiddlewaretoken", '{{ csrf_token }}')
+            document.getElementById('uploadapkfile').setAttribute("disabled",true);
+
+            {#var file = $("#file")[0].files[0];#}
+            {#var form = new FormData();#}
+            {#form.append('myfile', file);#}
+            {#form.append("csrfmiddlewaretoken", '{{ csrf_token }}');#}
+
+            $.ajax({
+                type: 'POST',
+                url:'/apk/save_uploadapkfile/',
+                data: form_Data,
+                processData: false,  // 告诉jquery不转换数据
+                contentType: false,  // 告诉jquery不设置内容格式
+                xhr: xhrOnProgress(function (e) {
+                    var percent = e.loaded / e.total;
+                    $("#progress-bar").css("width", (percent * 500));
+                }),
+
+                success: function (arg) {
+                    console.log(arg);
+                    {#window.alert(data.message);#}
+                    location.replace(document.referrer)
+
+                }
+            })
+        }
+    });
+</script>
+
+{% endblock %}
