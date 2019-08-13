@@ -29,4 +29,6 @@ urlpatterns = [
 	path('module/', include('module.urls')),
 	# """apk管理"""
 	path( 'apk/', include( 'apk.urls' ) ),
+	# """utils"""
+	path( 'utils/', include( 'utils.urls' ) ),
 ]

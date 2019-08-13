@@ -12,22 +12,21 @@ import re
 import os
 import time
 import requests
-import socket
-import json
 import hashlib
-socket.setdefaulttimeout(10000)
 from apk.AsyncHttp import AsyncHTTP
 import asyncio
-
-
+import socket
+socket.setdefaulttimeout(10000)
+import logging
+log =  logging.getLogger('interface')
 now = lambda: time.time()
-
+from apps.utils.exception.my_exception import MyException
+from apps.utils.http_format import response_success,response_failed
 # Create your views here.
 # 管理页面
 # @login_required
 
 def apk_list(request):
-    print("apk_list")
     apkfile_all = APK_UPLOADFILE.objects.filter(del_status=0).order_by("-create_time")
     p= Paginator(apkfile_all,15)
     page = request.GET.get('page')
@@ -35,16 +34,16 @@ def apk_list(request):
         apkfile_page = p.page(page)
     except PageNotAnInteger:
         apkfile_page = p.page(1)
-    print("apkfile_page:",apkfile_page)
+    log.info("apkfile_page:",apkfile_page)
     return render(request, "apk_list.html",{"apkfiles": apkfile_page , "type": "list"})
 
 
 def add_apk(request):
-    print("add apk ")
+    log.info("add apk ")
     return render(request,"apk_add.html")
 
 def result(request,apkid):
-    print("URL values result",apkid)
+    log.info("URL values result",apkid)
     results = APK_RESULTS.objects.filter(task_id=apkid).order_by("apk_testtype")
     p= Paginator(results,15)
     page = request.GET.get('page')
@@ -52,15 +51,15 @@ def result(request,apkid):
         results = p.page(page)
     except PageNotAnInteger:
         results = p.page(1)
-    print("results_page:",results)
+    log.info("results_page:",results)
     return render(request,"apk_result.html",{"results":results,"type":"result"})
 
 
 
 def detail_result(request,resultid):
-    print("detail_apkresult",resultid)
+    log.info("detail_apkresult",resultid)
     results = APK_RESULTS.objects.filter(id=resultid).order_by("apk_testtype")
-    print(results)
+    log.info(results)
     return render(request,"apk_detail_result.html",{"results":results,"type":"apk_detail_result"})
 
 @csrf_exempt
@@ -83,13 +82,13 @@ def get_detail_result(request):
 
 @csrf_exempt
 def upload_file_page(request):
-    print("upload_file_page ")
+    log.info("upload_file_page ")
     return render(request,"upfile.html")
 
 @csrf_exempt
 @print_func_time
 def upload_file(request):
-    print("upload_file method!")
+    log.info("upload_file method!")
     if request.method == "POST":  # 请求方法为POST时，进行处理
         myFile = request.FILES.get("myfile", None)  # 获取上传的文件，如果没有文件，则默认为None
         if not myFile:
@@ -124,10 +123,10 @@ def save_uploadapkfile(request):
         apk_testtype = request.POST.getlist("apk_testtype","")
         userid     = request.user.id
         username   = request.user
-        print( "name_des--------------------->", name_des)
-        print( "uploadfile--------------------->", uploadfile)
-        print( "tfid--------------------->", tfid)
-        print( "apk_testtype--------------------->", apk_testtype)
+        log.info( "name_des--------------------->", name_des)
+        log.info( "uploadfile--------------------->", uploadfile)
+        log.info( "tfid--------------------->", tfid)
+        log.info( "apk_testtype--------------------->", apk_testtype)
 
         if (platform.system() == "Windows"): #判断当前运行程序的操作系统
             tmp_dirs = 'D:\static\lapk'
@@ -137,31 +136,35 @@ def save_uploadapkfile(request):
             tmp_dir = os.path.join( settings.FILE_APK, str( username ),str( time.strftime( "%Y-%m-%d_%H:%M:%S", time.localtime() ) ) )
 
         if not os.path.exists( tmp_dir ):
-            print( "tmp_dir--------------------->", tmp_dir )
-            print( tmp_dir + " dir not exists ,create dir is starting" )
+            log.info( "tmp_dir--------------------->", tmp_dir )
+            log.info( tmp_dir + " dir not exists ,create dir is starting" )
+            log.warning(tmp_dir + " dir not exists ,create dir is starting")
             os.makedirs( tmp_dir )
-            print( tmp_dir + " dir not exists ,create dir is over" )
-
+            log.info( tmp_dir + " dir not exists ,create dir is over" )
+            log.warning(tmp_dir + " dir not exists ,create dir is over")
         # 新建tfid是空
         if tfid == "":
             if not uploadfile:
+                log.error(uploadfile +"上传文件不存在！")
                 return JsonResponse( {"status": 10401, "message": "上传文件不存在！"} )
             if uploadfile.name.split( '.' )[-1] not in ['apk']:
+                log.error(uploadfile +"上传文件类型错误！")
                 return JsonResponse( {"status": 10402, "message": "上传文件类型错误！"} )
             if ( ( uploadfile.name.find( '()' ) >= 0) or ( '(' in uploadfile.name ) or ( ')' in uploadfile.name ) ):
+                log.error(uploadfile +"上传文件名包含'()',请重新选择！")
                 return JsonResponse( {"status": 10405, "message": "上传文件名包含'()',请重新选择！"} )
 
             FilePathName = os.path.join( tmp_dir, uploadfile.name )
             try:
-                print( "write uploadfile--------------------->", uploadfile )
-                print( "write FilePathName--------------------->", FilePathName )
+                log.info( "write uploadfile--------------------->", uploadfile )
+                log.info( "write FilePathName--------------------->", FilePathName )
                 with open( FilePathName, 'wb+' ) as f:
                     # 分块写入文件
                     for chunk in uploadfile.chunks():
                         f.write( chunk )
 
                     # APK_UPLOADFILE保存上传数据
-                    print("FilePathName",FilePathName)
+                    log.info("FilePathName",FilePathName)
                     m5=_get_md5_value(FilePathName)
                     info_dic = _getApkInfo_byUpload(FilePathName)
                     if info_dic:
@@ -173,7 +176,7 @@ def save_uploadapkfile(request):
                         APK_UPLOADFILE.objects.create(module_id=module_id,userid="9999",username="AnonyUser",name_des=name_des,upfilepath=FilePathName,
                                                       apk_testtype=apk_testtype,md5=(_get_md5_value(FilePathName)),apksize=apksize,applicationname=applicationname,packagename=packagename )
                     else:
-                        print( "userid is has values--------------------->", userid,username )
+                        log.info( "userid is has values--------------------->", userid,username )
                         APK_UPLOADFILE.objects.create( userid=userid,module_id=module_id,username=username,
                                                        name_des=name_des,upfilepath=FilePathName,
                                                        apk_testtype=apk_testtype ,md5=(_get_md5_value(FilePathName)))
@@ -181,12 +184,12 @@ def save_uploadapkfile(request):
                     #上传文件是zip的格式处理
                     if uploadfile.name.split( '.' )[-1] in ['zip']:
                         cmdinfo = 'unzip'+' '+FilePathName+' '+'-d'+' '+tmp_dir
-                        print("zip cmdinfo--------------------->",cmdinfo)
+                        log.info("zip cmdinfo--------------------->",cmdinfo)
                         os.system(cmdinfo)
                         time.sleep(2)
-                        print("-----upload files type is zip, start unzip file-----")
+                        log.info("-----upload files type is zip, start unzip file-----")
                         apk_fileslist =_get_apkpath(tmp_dir)
-                        print("apk_fileslist--------------------->",apk_fileslist)
+                        log.info("apk_fileslist--------------------->",apk_fileslist)
                         id_list_maxid = APK_UPLOADFILE.objects.values_list('id',flat=True).last()
                         testtype_list = APK_UPLOADFILE.objects.get(id=id_list_maxid).apk_testtype[2:-2].split(',')
                         if  userid == None  :
@@ -202,7 +205,7 @@ def save_uploadapkfile(request):
                     else:
                         # values_list方法加个参数flat = True可以获取number的值列表。
                         apk_fileslist =_get_apkpath(tmp_dir)
-                        print("-----upload files type is apk----------")
+                        log.info("-----upload files type is apk----------")
                         id_list_maxid = APK_UPLOADFILE.objects.values_list('id',flat=True).last()
                         testtype_list = APK_UPLOADFILE.objects.get(id=id_list_maxid).apk_testtype[2:-2].split(',')
                         if  userid == None  :
@@ -230,20 +233,20 @@ def save_uploadapkfile(request):
                         # run_info.save()
                         # 增加上传文件之后异步运行测试结束
                         t1 = time.clock()
-                        print( "Total running time: %s s" % (str( t1 - t0 )) )
+                        log.info( "Total running time: %s s" % (str( t1 - t0 )) )
                         if flag:
                             return JsonResponse( {"status": 10200, "message": "运行测试成功" } )
                         else:
                             return JsonResponse( {"status": 10200, "message": "运行测试失败" } )
 
             except Exception as e:
-                    print( e )
+                    log.info( e )
             return JsonResponse( {"status": 10200, "message": "上传成功！", "data": FilePathName} )
 
         # uploadfile实现多态
         else:
             if uploadfile == None:
-                print("修改，未修改上传文件",uploadfile)
+                log.info("修改，未修改上传文件",uploadfile)
                 apk_uploadinfo = APK_UPLOADFILE.objects.get( id=tfid )
                 apk_uploadinfo.userid = userid
                 apk_uploadinfo.name_des = name_des
@@ -251,7 +254,7 @@ def save_uploadapkfile(request):
                 apk_uploadinfo.save()
                 return JsonResponse( {"status": 10200, "message": "修改成功！", "data": apk_uploadinfo.name_des} )
             else:
-                print("修改上传文件",uploadfile)
+                log.info("修改上传文件",uploadfile)
                 FilePathName = os.path.join( tmp_dir, uploadfile.name )
                 try:
                     with open( FilePathName, 'wb+' ) as f:
@@ -265,7 +268,7 @@ def save_uploadapkfile(request):
                     apk_uploadinfo.upapkfile = FilePathName
                     apk_uploadinfo.save()
                 except Exception as e:
-                    print( e )
+                    log.info( e )
                 return JsonResponse( {"status":10200, "message": "修改成功！", "data": FilePathName} )
 
         return render(request,"apk_add.html")
@@ -278,17 +281,17 @@ def _getApkInfo_byUpload(uploadpath):
     '''
     info = {}
     if (platform.system() == "Windows"): #判断当前运行程序的操作系统
-        # print("settings.BASE_DIR",settings.BASE_DIR)
+        # log.info("settings.BASE_DIR",settings.BASE_DIR)
         # path = r"D:\UserData\git\baice\bvt\bc_qa_bvt\toolapi\tools\forapk"
         path = r"D:\UserData\git\baice\bvt\bc_qa_bvt\toolapi\tools\forapk"
-        print("Windows path",path)
+        log.info("Windows path",path)
     else:
         path = settings.AAPTTOOLS
     # path = aaptpath
     aapt_path = path + "aapt"
     get_info_command = "%s dump badging %s" % (aapt_path, uploadpath)
     output = os.popen( get_info_command ).read()
-    print("output----------->",output)
+    log.info("output----------->",output)
 
     match = re.compile( "package: name='(\S+)' versionCode='(\d+)' versionName='(\S+)'" ).match( output )
     if not match:
@@ -319,13 +322,13 @@ def download_apkfile(request,apkid):
     :return:
     '''
     if request.method == "GET":
-        print("download_apkfile apkid:",apkid)
+        log.info("download_apkfile apkid:",apkid)
         #apkid从URL获取，urls.py定义
         if apkid == "":
             return JsonResponse({"status":10406, "message": "id不能为空"})
         file_name = APK_UPLOADFILE.objects.get(id=apkid).upfilepath
         if file_name :
-            print( "file_name download file", file_name )
+            log.info( "file_name download file", file_name )
             # 文件是否存在判断
             if not os.path.exists(str(file_name) ):
                 raise Http404
@@ -334,7 +337,7 @@ def download_apkfile(request,apkid):
             if ext not in ['py','db']:
                 try:
                     response = StreamingHttpResponse(_file_iter(file_name))
-                    print("response",response)
+                    log.info("response",response)
                     response['Content-Type']        = 'application/octet-stream'
                     #只取文件名，不需要file_name全路径
                     response['Content-Disposition'] = 'attachment;filename="{0}"'.format(os.path.basename(str(file_name)))
@@ -357,7 +360,7 @@ def send_apk_mail(request):
             return JsonResponse({"status": 10102, "message": "id不能为空"})
         url = settings.APK_SEND_MAIL+tid
         r = requests.get(url)
-        print("send_apk_mail URL is %s , text is %s "%(url,r.text) )
+        log.info("send_apk_mail URL is %s , text is %s "%(url,r.text) )
         if (r.status_code) == 200:
             return JsonResponse( {"status": 10200, "message": "发送邮件成功"} )
         else:
@@ -374,11 +377,11 @@ def _get_md5_value(file_path):
         hash_code = md5_obj.hexdigest()
         f.close()
         md5 = str(hash_code).lower()
-        print("file_path:%s md5-value:%s"%(file_path,md5))
+        log.info("file_path:%s md5-value:%s"%(file_path,md5))
     return md5
 
 def _file_iter(file_name,chunk_size=512):
-    print("_file_iter .....",file_name)
+    log.info("_file_iter .....",file_name)
     with open(str(file_name),'rb') as f:
         while True:
             c = f.read(chunk_size)
@@ -413,33 +416,33 @@ def _run_apk_taskbyupload(taskid):
             "path": str( APK_UPLOADFILE.objects.get(id=taskid).upfilepath )  #当不支持zip的格式直接读此数据即可
     }
     testtype_list = APK_UPLOADFILE.objects.get( id=taskid ).apk_testtype[2:-2].split( ',' )
-    print("_run_apk_taskbyupload data",data)
-    print("_run_apk_taskbyupload",testtype_list)
+    log.info("_run_apk_taskbyupload data",data)
+    log.info("_run_apk_taskbyupload",testtype_list)
     res_results = {}
     for type_test in testtype_list:
-        print("type_test",type_test)
+        log.info("type_test",type_test)
         if type_test == 'Apkinfo':
             r_apkinfo = requests.post( settings.APKINFO_URL, data )
-            print("Apkinfo请求URL",settings.APKINFO_URL)
-            print("Apkinfo请求数据",data)
-            print("r_apkinfo 返回status:",r_apkinfo.status_code)
-            print("r_apkinfo 返回text:",r_apkinfo.text)
+            log.info("Apkinfo请求URL",settings.APKINFO_URL)
+            log.info("Apkinfo请求数据",data)
+            log.info("r_apkinfo 返回status:",r_apkinfo.status_code)
+            log.info("r_apkinfo 返回text:",r_apkinfo.text)
             res_results["Apkinfo"]=int(r_apkinfo.status_code)
         elif type_test == 'VirusScanning':
             r_vs = requests.post( settings.VS_URL, data )
-            print("VirusScanning请求URL",settings.VS_URL)
-            print("VirusScanning请求数据",data)
-            print("r_vs 返回status:",r_vs.status_code)
-            print("r_vs 返回text:",r_vs.text)
+            log.info("VirusScanning请求URL",settings.VS_URL)
+            log.info("VirusScanning请求数据",data)
+            log.info("r_vs 返回status:",r_vs.status_code)
+            log.info("r_vs 返回text:",r_vs.text)
             # res_results={"VirusScanning":int(r_vs.status_code)}
             res_results["VirusScanning"]=int(r_vs.status_code)
         else :
             headers = {'Content-Type':'application/json'}
             r_monkey = requests.post( url= settings.MONKEY_URL, json=data,headers=headers)
-            print("请求URL",settings.MONKEY_URL)
-            print("请求数据",data)
-            print("r_monkey 返回status:",r_monkey.status_code)
-            print("r_monkey 返回text:",r_monkey.text)
+            log.info("请求URL",settings.MONKEY_URL)
+            log.info("请求数据",data)
+            log.info("r_monkey 返回status:",r_monkey.status_code)
+            log.info("r_monkey 返回text:",r_monkey.text)
             # res_results={"Monkey":int(r_monkey.status_code)}
             res_results["Monkey"]=int(r_monkey.status_code)
 
@@ -451,7 +454,7 @@ def _run_apk_taskbyupload(taskid):
             scuess+=1
 
     if  len == scuess:
-        print("_run_apk_taskbyupload update sum_status = 2")
+        log.info("_run_apk_taskbyupload update sum_status = 2")
         run_info = APK_UPLOADFILE.objects.get(id=taskid)
         # run_info.sum_status =1 先修改成已完成 方便发邮件按钮展示
         run_info.sum_status =2
@@ -481,33 +484,33 @@ def run_apk_task(request):
             "taskid": tid,
             "path": str( APK_UPLOADFILE.objects.get(id=tid).upfilepath )  #当不支持zip的格式直接读此数据即可
         }
-        print("run_apk_task  data",data)
-        print("run_apk_task  testtype_list",testtype_list)
+        log.info("run_apk_task  data",data)
+        log.info("run_apk_task  testtype_list",testtype_list)
         res_results = {}
         for type_test in testtype_list:
-            print("type_test",type_test)
+            log.info("type_test",type_test)
             if type_test == 'Apkinfo':
                 r_apkinfo = requests.post( settings.APKINFO_URL, data )
-                print("Apkinfo请求URL",settings.APKINFO_URL)
-                print("Apkinfo请求数据",data)
-                print("r_apkinfo 返回status:",r_apkinfo.status_code)
-                print("r_apkinfo 返回text:",r_apkinfo.text)
+                log.info("Apkinfo请求URL",settings.APKINFO_URL)
+                log.info("Apkinfo请求数据",data)
+                log.info("r_apkinfo 返回status:",r_apkinfo.status_code)
+                log.info("r_apkinfo 返回text:",r_apkinfo.text)
                 res_results["Apkinfo"]=int(r_apkinfo.status_code)
             elif type_test == 'VirusScanning':
                 r_vs = requests.post( settings.VS_URL, data )
-                print("VirusScanning请求URL",settings.VS_URL)
-                print("VirusScanning请求数据",data)
-                print("r_vs 返回status:",r_vs.status_code)
-                print("r_vs 返回text:",r_vs.text)
+                log.info("VirusScanning请求URL",settings.VS_URL)
+                log.info("VirusScanning请求数据",data)
+                log.info("r_vs 返回status:",r_vs.status_code)
+                log.info("r_vs 返回text:",r_vs.text)
                 # res_results={"VirusScanning":int(r_vs.status_code)}
                 res_results["VirusScanning"]=int(r_vs.status_code)
             else :
                 headers = {'Content-Type':'application/json'}
                 r_monkey = requests.post( url= settings.MONKEY_URL, json=data,headers=headers)
-                print("请求URL",settings.MONKEY_URL)
-                print("请求数据",data)
-                print("r_monkey 返回status:",r_monkey.status_code)
-                print("r_monkey 返回text:",r_monkey.text)
+                log.info("请求URL",settings.MONKEY_URL)
+                log.info("请求数据",data)
+                log.info("r_monkey 返回status:",r_monkey.status_code)
+                log.info("r_monkey 返回text:",r_monkey.text)
                 # res_results={"Monkey":int(r_monkey.status_code)}
                 res_results["Monkey"]=int(r_monkey.status_code)
 
@@ -517,7 +520,7 @@ def run_apk_task(request):
             len+=1
             if status == 200:
                 scuess+=1
-        print(len,scuess)
+        log.info(len,scuess)
 
         if  len == scuess:
             run_info = APK_UPLOADFILE.objects.get(id=tid)
@@ -542,12 +545,12 @@ def run_apk_task_async(request):
             "taskid": tid,
             "path": str( APK_UPLOADFILE.objects.get(id=tid).upfilepath )  #当不支持zip的格式直接读此数据即可
         }
-        print("run_apk_task_async data",data)
-        print("run_apk_task_async testtype_list",testtype_list)
+        log.info("run_apk_task_async data",data)
+        log.info("run_apk_task_async testtype_list",testtype_list)
         res = _run_http_async(testtype_list,data)
-        print("run_apk_task_async res ",res)
+        log.info("run_apk_task_async res ",res)
         if res :
-            print("_run_http_async testtype_list")
+            log.info("_run_http_async testtype_list")
             return JsonResponse( {"status":10200, "message": "执行中..."} )
         else:
             return JsonResponse( {"status":10200, "message": "有执行失败的任务，请注意！"} )
@@ -560,33 +563,33 @@ def _run_http_async(testtype_list,req_data):
     asyncio.set_event_loop( loop )
     tasks = []
     for type_test in testtype_list:
-        print( "type_test _run_http_async ", type_test )
+        log.info( "type_test _run_http_async ", type_test )
         if type_test == 'Monkey':
-            print("_run_http_async post_json  Monkey ")
+            log.info("_run_http_async post_json  Monkey ")
             tasks = [asyncio.ensure_future( AsyncHTTP.post_json( settings.MONKEY_URL,req_data ) )]
         elif type_test == 'VirusScanning':
-            print("_run_http_async VirusScanning ")
+            log.info("_run_http_async VirusScanning ")
             tasks = [asyncio.ensure_future( AsyncHTTP.post_text_plain( settings.VS_URL,req_data ) )]
         else:
-            print("_run_http_async Apkinfo ")
+            log.info("_run_http_async Apkinfo ")
             # tasks = [asyncio.ensure_future(AsyncHTTP.post('http://httpbin.org/post', data = {'key':'value'}))]
             tasks = [asyncio.ensure_future( AsyncHTTP.post_text_plain( settings.APKINFO_URL,req_data ) )]
     #将协程注册到事件循环，并启动事件循环
     #loop.run_until_complete(asyncio.gather(*tasks))
-    # print("get tasks leng:",len(tasks))
+    # log.info("get tasks leng:",len(tasks))
     loop.run_until_complete(asyncio.wait(tasks))
 
     scuess_count = 0
     for task in tasks:
-        # print("_run_http_async Task -------------->",task)
-        print('_run_http_async Task ret--------------> ', task.result())
+        # log.info("_run_http_async Task -------------->",task)
+        log.info('_run_http_async Task ret--------------> ', task.result())
         if len(task.result()):
             scuess_count+=1
-    # print("scuess_count",scuess_count)
-    # print("testtype_list_count",len(testtype_list))
+    # log.info("scuess_count",scuess_count)
+    # log.info("testtype_list_count",len(testtype_list))
     # if scuess_count == len(testtype_list):
     #     return  True
-    print('_run_http_async TIME: ', now() - start)
+    log.info('_run_http_async TIME: ', now() - start)
     return True
 
 
@@ -598,7 +601,7 @@ def send_apk_mail(request):
             return JsonResponse({"status": 10102, "message": "id不能为空"})
         url = settings.APK_SEND_MAIL+tid
         r = requests.get(url)
-        print("send_apk_mail URL is %s , text is %s "%(url,r.text) )
+        log.info("send_apk_mail URL is %s , text is %s "%(url,r.text) )
         if (r.status_code) == 200:
             return JsonResponse( {"status": 10200, "message": "发送邮件成功"} )
         else:

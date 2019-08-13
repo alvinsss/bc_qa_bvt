@@ -17,7 +17,7 @@
       <sourceFolder url="file://$MODULE_DIR$/bc_qa_bvt/apps" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/bc_qa_bvt/exta_apps" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/bc_qa_bvt/toolapi/tools" isTestSource="false" />
-      <excludeFolder url="file://$MODULE_DIR$/bc_qa_bvt/bc_qa_bvt" />
+      <sourceFolder url="file://$MODULE_DIR$/bc_qa_bvt/bc_qa_bvt" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
