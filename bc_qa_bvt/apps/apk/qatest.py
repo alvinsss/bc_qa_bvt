@@ -3,7 +3,7 @@
 # @Author  : alvin
 # @File    : qatest.py
 # @Software: PyCharm
-
+import this
 
 def test_str():
     a = ['手势服务']
